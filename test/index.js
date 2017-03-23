@@ -5,9 +5,9 @@ const Lab    = require('lab');
 const Code   = require('code');
 const Catbox = require('catbox');
 const Disk   = require('..');
-const Os     = require('os');
 const Fs     = require('fs');
 const Path   = require('path');
+const Tmp    = require('tmp');
 
 // Test shortcuts
 const lab      = exports.lab = Lab.script();
@@ -15,352 +15,279 @@ const describe = lab.describe;
 const it       = lab.it;
 const expect   = Code.expect;
 
-const options = { cachepath: Os.tmpdir() };
+// setup general options
+const tmpcachepath = Tmp.dirSync({ prefix: 'catbox_disk_tmp_', unsafeCleanup: true, mode: '0777' });
+const options = { cachePath: tmpcachepath.name };
 
 
 describe('Disk', () => {
 
-    it('throws an error if not created with new', (done) => {
+    lab.after((done) => {
 
-        const fn = () => {
-
-            Disk();
-        };
-
-        expect(fn).to.throw(Error);
-        done();
+        console.log('removing tmpcachepath:',tmpcachepath.name);
+        tmpcachepath.removeCallback();
+        return done();
     });
 
-    it('throws an error with no provided cachepath', (done) => {
 
-        const fn = () => {
+    describe('#constructor', () => {
 
-            new Catbox.Client(Disk);
-        };
-        expect(fn).to.throw(Error);
-        done();
+        it('throws an error if not created with new', (done) => {
 
-    });
+            const fn = () => {
 
-    it('throws an error with a non-existent cachepath', (done) => {
+                Disk();
+            };
 
-        const client = new Catbox.Client(Disk, { cachepath: '/does/not/exist/yo/ho/ho' });
-        client.start((err) => {
-
-            expect(err).to.exist();
-            expect(client.isReady()).to.equal(false);
+            expect(fn).to.throw(Error);
             done();
         });
 
-    });
+        it('throws an error with no provided cachePath', (done) => {
 
-    it('throws an error with a non-directory cachepath', (done) => {
+            const fn = () => {
 
-        const filepath = Path.join(Os.tmpdir(),'diskCacheTestFile.txt');
-        Fs.writeFile(filepath,'ok', (err) => {
+                new Catbox.Client(Disk);
+            };
+            expect(fn).to.throw(Error);
+            done();
 
-            if (err){
-                throw err;
-            }
-            const client = new Catbox.Client(Disk, { cachepath: filepath });
+        });
+
+        it('throws an error with a non-existent cachePath', (done) => {
+
+            const client = new Catbox.Client(Disk, { cachePath: '/does/not/exist/yo/ho/ho' });
             client.start((err) => {
 
                 expect(err).to.exist();
                 expect(client.isReady()).to.equal(false);
                 done();
             });
+
         });
-    });
 
-    it('creates a new connection', (done) => {
+        it('throws an error with a non-directory cachePath', (done) => {
 
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
+            const filepath = Path.join(tmpcachepath.name,'diskCacheTestFile.txt');
+            Fs.writeFile(filepath,'ok', (err) => {
 
-            expect(err).to.not.exist();
-            expect(client.isReady()).to.equal(true);
-            done();
-        });
-    });
+                if (err){
+                    throw err;
+                }
+                const client = new Catbox.Client(Disk, { cachePath: filepath });
+                client.start((err) => {
 
-    it('closes the connection', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            expect(client.isReady()).to.equal(true);
-            client.stop();
-            expect(client.isReady()).to.equal(false);
-            done();
-        });
-    });
-
-
-    it('gets an item after setting it', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            const key = { id: 'test/id?with special%chars&', segment: 'test' };
-            client.set(key, '123', 5000, (err) => {
-
-                expect(err).to.not.exist();
-                client.get(key, (err, result) => {
-
-                    expect(err).to.equal(null);
-                    expect(result.item).to.equal('123');
+                    expect(err).to.exist();
+                    expect(client.isReady()).to.equal(false);
+                    Fs.unlinkSync(filepath);
                     done();
                 });
             });
         });
-    });
 
+        it('throws an error with a non-integer cleanEvery', (done) => {
 
+            const fn = () => {
 
-    it('fails setting an item circular references', (done) => {
+                new Catbox.Client(Disk, { cachePath: tmpcachepath.name, cleanEvery: 'notbloodylikely' });
+            };
+            expect(fn).to.throw(Error);
+            done();
 
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            const key = { id: 'circular', segment: 'test' };
-            const value = { a: 1 };
-            value.b = value;
-
-            client.set(key, value, 10, (err) => {
-
-                expect(err).to.exist();
-                // expect(err.message).to.equal('Converting circular structure to JSON');
-                done();
-            });
         });
+
+        it('errors on a policy with a missing segment name', (done) => {
+
+            const config = {
+                expiresIn: 50000
+            };
+
+            const fn = () => {
+
+                const client = new Catbox.Client(Disk, options);
+                new Catbox.Policy(config, client, '');
+            };
+            expect(fn).to.throw(Error);
+            done();
+        });
+
+        it('errors on a policy with a bad segment name', (done) => {
+
+            const config = {
+                expiresIn: 50000
+            };
+            const fn = () => {
+
+                const client = new Catbox.Client(Disk, options);
+                new Catbox.Policy(config, client, 'a\0b');
+            };
+            expect(fn).to.throw(Error);
+            done();
+        });
+
     });
 
 
-    it('ignored starting a connection twice on same event', (done) => {
 
-        let x = 2;
-        const client = new Catbox.Client(Disk, options);
-        const start = () => {
 
+    describe('#start', () => {
+
+        it('creates a new connection', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
             client.start((err) => {
 
                 expect(err).to.not.exist();
                 expect(client.isReady()).to.equal(true);
-                --x;
-                if (!x) {
-                    done();
-                }
+                done();
             });
-        };
+        });
 
-        start();
-        start();
-    });
+        it('closes the connection', (done) => {
 
-
-    it('ignored starting a connection twice chained', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            expect(client.isReady()).to.equal(true);
+            const client = new Catbox.Client(Disk, options);
             client.start((err) => {
 
                 expect(err).to.not.exist();
                 expect(client.isReady()).to.equal(true);
+                client.stop();
+                expect(client.isReady()).to.equal(false);
                 done();
             });
         });
-    });
 
+        it('ignored starting a connection twice on same event', (done) => {
 
-    it('returns not found on get when using null key', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            client.get(null, (err, result) => {
-
-                expect(err).to.equal(null);
-                expect(result).to.equal(null);
-                done();
-            });
-        });
-    });
-
-
-    it('returns not found on get when item expired', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            const key = { id: 'x', segment: 'test' };
-            client.set(key, 'x', 1, (err) => {
-
-                expect(err).to.not.exist();
-                setTimeout(() => {
-
-                    client.get(key, (err, result) => {
-
-                        expect(err).to.equal(null);
-                        expect(result).to.equal(null);
-                        done();
-                    });
-                }, 1000);
-            });
-        });
-    });
-
-
-    it('errors on set when using null key', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            client.set(null, {}, 1000, (err) => {
-
-                expect(err instanceof Error).to.equal(true);
-                done();
-            });
-        });
-    });
-
-
-    it('errors on get when using invalid key', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            client.get({}, (err) => {
-
-                expect(err instanceof Error).to.equal(true);
-                done();
-            });
-        });
-    });
-
-
-    it('errors on set when using invalid key', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            client.set({}, {}, 1000, (err) => {
-
-                expect(err instanceof Error).to.equal(true);
-                done();
-            });
-        });
-    });
-
-
-    it('ignores set when using non-positive ttl value', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-            const key = { id: 'x', segment: 'test' };
-            client.set(key, 'y', 0, (err) => {
-
-                expect(err).to.not.exist();
-                done();
-            });
-        });
-    });
-
-
-    it('errors on get when stopped', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.stop();
-        const key = { id: 'x', segment: 'test' };
-        client.connection.get(key, (err, result) => {
-
-            expect(err).to.exist();
-            expect(result).to.not.exist();
-            done();
-        });
-    });
-
-
-    it('errors on set when stopped', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.stop();
-        const key = { id: 'x', segment: 'test' };
-        client.connection.set(key, 'y', 1, (err) => {
-
-            expect(err).to.exist();
-            done();
-        });
-    });
-
-
-    it('errors on missing segment name', (done) => {
-
-        const config = {
-            expiresIn: 50000
-        };
-
-        const fn = () => {
-
+            let x = 2;
             const client = new Catbox.Client(Disk, options);
-            new Catbox.Policy(config, client, '');
-        };
-        expect(fn).to.throw(Error);
-        done();
-    });
+            const start = () => {
 
-
-    it('errors on bad segment name', (done) => {
-
-        const config = {
-            expiresIn: 50000
-        };
-        const fn = () => {
-
-            const client = new Catbox.Client(Disk, options);
-            new Catbox.Policy(config, client, 'a\0b');
-        };
-        expect(fn).to.throw(Error);
-        done();
-    });
-
-
-    it('supports empty keys', (done) => {
-
-        const client = new Catbox.Client(Disk, options);
-        client.start((err) => {
-
-            expect(err).to.not.exist();
-
-            const key = { id: '', segment: 'test' };
-            client.set(key, '123', 5000, (err) => {
-
-                expect(err).to.not.exist();
-                client.get(key, (err, result) => {
+                client.start((err) => {
 
                     expect(err).to.not.exist();
-                    expect(result.item).to.equal('123');
+                    expect(client.isReady()).to.equal(true);
+                    --x;
+                    if (!x) {
+                        done();
+                    }
+                });
+            };
+
+            start();
+            start();
+        });
+
+
+        it('ignored starting a connection twice chained', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                expect(client.isReady()).to.equal(true);
+                client.start((err) => {
+
+                    expect(err).to.not.exist();
+                    expect(client.isReady()).to.equal(true);
                     done();
                 });
             });
         });
+
     });
+
+
 
 
 
     describe('#get', () => {
+
+
+        it('returns not found on get when item expired', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                const key = { id: 'x', segment: 'test' };
+                client.set(key, 'x', 1, (err) => {
+
+                    expect(err).to.not.exist();
+                    setTimeout(() => {
+
+                        client.get(key, (err, result) => {
+
+                            expect(err).to.equal(null);
+                            expect(result).to.equal(null);
+                            done();
+                        });
+                    }, 1000);
+                });
+            });
+        });
+
+        it('returns not found on get when using null key', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                client.get(null, (err, result) => {
+
+                    expect(err).to.equal(null);
+                    expect(result).to.equal(null);
+                    done();
+                });
+            });
+        });
+
+        it('errors on get when using invalid key', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                client.get({}, (err) => {
+
+                    expect(err instanceof Error).to.equal(true);
+                    done();
+                });
+            });
+        });
+
+        it('errors on get when stopped', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.stop();
+            const key = { id: 'x', segment: 'test' };
+            client.connection.get(key, (err, result) => {
+
+                expect(err).to.exist();
+                expect(result).to.not.exist();
+                done();
+            });
+        });
+
+        it('gets an item after setting it', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+
+                const key = { id: 'test/id?with special%chars&', segment: 'test' };
+                client.set(key, '123', 5000, (err) => {
+
+                    expect(err).to.not.exist();
+                    client.get(key, (err, result) => {
+
+                        expect(err).to.equal(null);
+                        expect(result.item).to.equal('123');
+                        done();
+                    });
+                });
+            });
+        });
 
         it('throws error on existing unreadable key ', (done) => {
 
@@ -407,7 +334,108 @@ describe('Disk', () => {
     });
 
 
+
+
+
+
     describe('#set', () => {
+
+
+        it('errors on set when stopped', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.stop();
+            const key = { id: 'x', segment: 'test' };
+            client.connection.set(key, 'y', 1, (err) => {
+
+                expect(err).to.exist();
+                done();
+            });
+        });
+
+
+        it('supports empty keys', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+
+                const key = { id: '', segment: 'test' };
+                client.set(key, '123', 5000, (err) => {
+
+                    expect(err).to.not.exist();
+                    client.get(key, (err, result) => {
+
+                        expect(err).to.not.exist();
+                        expect(result.item).to.equal('123');
+                        done();
+                    });
+                });
+            });
+        });
+
+        it('errors on set when using null key', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                client.set(null, {}, 1000, (err) => {
+
+                    expect(err instanceof Error).to.equal(true);
+                    done();
+                });
+            });
+        });
+
+        it('errors on set when using invalid key', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                client.set({}, {}, 1000, (err) => {
+
+                    expect(err instanceof Error).to.equal(true);
+                    done();
+                });
+            });
+        });
+
+        it('ignores set when using non-positive ttl value', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                const key = { id: 'x', segment: 'test' };
+                client.set(key, 'y', 0, (err) => {
+
+                    expect(err).to.not.exist();
+                    done();
+                });
+            });
+        });
+
+        it('fails setting an item with circular references', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+                const key = { id: 'circular', segment: 'test' };
+                const value = { a: 1 };
+                value.b = value;
+
+                client.set(key, value, 10, (err) => {
+
+                    expect(err).to.exist();
+                    // expect(err.message).to.equal('Converting circular structure to JSON');
+                    done();
+                });
+            });
+        });
 
         it('adds an item to the cache object', (done) => {
 
@@ -428,26 +456,12 @@ describe('Disk', () => {
             });
         });
 
-
-        it('adds an item to the cache object with excessive ttl', (done) => {
-
-            const key = { segment: 'test', id: 'test' };
-            const disk = new Disk(options);
-
-            disk.start(() => {
-
-                disk.set(key, 'myvalue', 2147483648, (err) => {
-
-                    expect(err).to.exist();
-                    expect(err.message).to.equal('Invalid ttl (greater than 2147483647)');
-                    done();
-                });
-            });
-        });
+    });
 
 
+    describe('#drop', () => {
 
-        it('removes an item from the cache object when it expires', (done) => {
+        it('does not return an expired item', (done) => {
 
             const key = { segment: 'test', id: 'test' };
             const disk = new Disk(options);
@@ -472,10 +486,6 @@ describe('Disk', () => {
                 });
             });
         });
-    });
-
-
-    describe('#drop', () => {
 
         it('drops an existing item', (done) => {
 
@@ -500,7 +510,6 @@ describe('Disk', () => {
                 });
             });
         });
-
 
         it('drops an item from a missing segment', (done) => {
 
