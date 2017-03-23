@@ -329,7 +329,6 @@ describe('Disk', () => {
                         expect(err).to.exist();
                         expect(err.code).to.not.equal('ENOENT');
                         expect(result).to.not.exist();
-                        Fs.unlinkSync(fp);
                         done();
                     });
                 });
