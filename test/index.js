@@ -75,9 +75,9 @@ describe('Disk', () => {
                     throw err;
                 }
                 const client = new Catbox.Client(Disk, { cachePath: filepath });
-                client.start((err) => {
+                client.start((err2) => {
 
-                    expect(err).to.exist();
+                    expect(err2).to.exist();
                     expect(client.isReady()).to.equal(false);
                     Fs.unlinkSync(filepath);
                     done();
@@ -185,9 +185,9 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 expect(client.isReady()).to.equal(true);
-                client.start((err) => {
+                client.start((err2) => {
 
-                    expect(err).to.not.exist();
+                    expect(err2).to.not.exist();
                     expect(client.isReady()).to.equal(true);
                     done();
                 });
@@ -210,14 +210,14 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 const key = { id: 'x', segment: 'test' };
-                client.set(key, 'x', 1, (err) => {
+                client.set(key, 'x', 1, (err2) => {
 
-                    expect(err).to.not.exist();
+                    expect(err2).to.not.exist();
                     setTimeout(() => {
 
-                        client.get(key, (err, result) => {
+                        client.get(key, (err3, result) => {
 
-                            expect(err).to.equal(null);
+                            expect(err3).to.equal(null);
                             expect(result).to.equal(null);
                             done();
                         });
@@ -232,9 +232,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.get(null, (err, result) => {
+                client.get(null, (err2, result) => {
 
-                    expect(err).to.equal(null);
+                    expect(err2).to.equal(null);
                     expect(result).to.equal(null);
                     done();
                 });
@@ -247,9 +247,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.get({}, (err) => {
+                client.get({}, (err2) => {
 
-                    expect(err instanceof Error).to.equal(true);
+                    expect(err2 instanceof Error).to.equal(true);
                     done();
                 });
             });
@@ -276,12 +276,12 @@ describe('Disk', () => {
                 expect(err).to.not.exist();
 
                 const key = { id: 'test/id?with special%chars&', segment: 'test' };
-                client.set(key, '123', 5000, (err) => {
+                client.set(key, '123', 5000, (err2) => {
 
-                    expect(err).to.not.exist();
-                    client.get(key, (err, result) => {
+                    expect(err2).to.not.exist();
+                    client.get(key, (err3, result) => {
 
-                        expect(err).to.equal(null);
+                        expect(err3).to.equal(null);
                         expect(result.item).to.equal('123');
                         done();
                     });
@@ -300,6 +300,30 @@ describe('Disk', () => {
                 disk.set(key, 'notok', 2000, () => {
 
                     Fs.chmodSync(fp,'0222'); // make the file unreadable
+                    disk.get(key, (err, result) => {
+
+                        expect(err).to.exist();
+                        expect(err.code).to.not.equal('ENOENT');
+                        expect(result).to.not.exist();
+                        Fs.unlinkSync(fp);
+                        done();
+                    });
+                });
+
+            });
+        });
+
+        it('throws error on unparseable JSON', (done) => {
+
+            const disk = new Disk(options);
+            disk.start(() => {
+
+                const key = { segment : 'segment', id : 'badjson' };
+                const fp  = disk.getStoragePathForKey(key);
+
+                disk.set(key, 'notok', 2000, () => {
+
+                    Fs.appendFileSync(fp, 'bad data that kills JSON');
                     disk.get(key, (err, result) => {
 
                         expect(err).to.exist();
@@ -362,12 +386,12 @@ describe('Disk', () => {
                 expect(err).to.not.exist();
 
                 const key = { id: '', segment: 'test' };
-                client.set(key, '123', 5000, (err) => {
+                client.set(key, '123', 5000, (err2) => {
 
-                    expect(err).to.not.exist();
-                    client.get(key, (err, result) => {
+                    expect(err2).to.not.exist();
+                    client.get(key, (err3, result) => {
 
-                        expect(err).to.not.exist();
+                        expect(err3).to.not.exist();
                         expect(result.item).to.equal('123');
                         done();
                     });
@@ -381,9 +405,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.set(null, {}, 1000, (err) => {
+                client.set(null, {}, 1000, (err2) => {
 
-                    expect(err instanceof Error).to.equal(true);
+                    expect(err2 instanceof Error).to.equal(true);
                     done();
                 });
             });
@@ -395,9 +419,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.set({}, {}, 1000, (err) => {
+                client.set({}, {}, 1000, (err2) => {
 
-                    expect(err instanceof Error).to.equal(true);
+                    expect(err2 instanceof Error).to.equal(true);
                     done();
                 });
             });
@@ -410,9 +434,9 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 const key = { id: 'x', segment: 'test' };
-                client.set(key, 'y', 0, (err) => {
+                client.set(key, 'y', 0, (err2) => {
 
-                    expect(err).to.not.exist();
+                    expect(err2).to.not.exist();
                     done();
                 });
             });
@@ -428,9 +452,9 @@ describe('Disk', () => {
                 const value = { a: 1 };
                 value.b = value;
 
-                client.set(key, value, 10, (err) => {
+                client.set(key, value, 10, (err2) => {
 
-                    expect(err).to.exist();
+                    expect(err2).to.exist();
                     // expect(err.message).to.equal('Converting circular structure to JSON');
                     done();
                 });
@@ -475,9 +499,9 @@ describe('Disk', () => {
                         expect(result.item).to.equal('myvalue');
                         setTimeout(() => {
 
-                            disk.get(key, (err, result2) => {
+                            disk.get(key, (err2, result2) => {
 
-                                expect(err).to.not.exist();
+                                expect(err2).to.not.exist();
                                 expect(result2).to.not.exist();
                                 done();
                             });
@@ -494,16 +518,16 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 const key = { id: 'x', segment: 'test' };
-                client.set(key, '123', 5000, (err) => {
+                client.set(key, '123', 5000, (err2) => {
 
-                    expect(err).to.not.exist();
-                    client.get(key, (err, result) => {
+                    expect(err2).to.not.exist();
+                    client.get(key, (err3, result) => {
 
-                        expect(err).to.equal(null);
+                        expect(err3).to.equal(null);
                         expect(result.item).to.equal('123');
-                        client.drop(key, (err) => {
+                        client.drop(key, (err4) => {
 
-                            expect(err).to.not.exist();
+                            expect(err4).to.not.exist();
                             done();
                         });
                     });
@@ -518,9 +542,9 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 const key = { id: 'x', segment: 'test' };
-                client.drop(key, (err) => {
+                client.drop(key, (err2) => {
 
-                    expect(err).to.not.exist();
+                    expect(err2).to.not.exist();
                     done();
                 });
             });
@@ -534,16 +558,16 @@ describe('Disk', () => {
 
                 expect(err).to.not.exist();
                 const key = { id: 'x', segment: 'test' };
-                client.set(key, '123', 2000, (err) => {
+                client.set(key, '123', 2000, (err2) => {
 
-                    expect(err).to.not.exist();
-                    client.get(key, (err, result) => {
+                    expect(err2).to.not.exist();
+                    client.get(key, (err3, result) => {
 
-                        expect(err).to.equal(null);
+                        expect(err3).to.equal(null);
                         expect(result.item).to.equal('123');
-                        client.drop({ id: 'y', segment: 'test' }, (err) => {
+                        client.drop({ id: 'y', segment: 'test' }, (err4) => {
 
-                            expect(err).to.not.exist();
+                            expect(err4).to.not.exist();
                             done();
                         });
                     });
@@ -585,9 +609,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.drop({}, (err) => {
+                client.drop({}, (err2) => {
 
-                    expect(err).to.exist(true);
+                    expect(err2).to.exist(true);
                     done();
                 });
             });
@@ -600,9 +624,9 @@ describe('Disk', () => {
             client.start((err) => {
 
                 expect(err).to.not.exist();
-                client.drop(null, (err) => {
+                client.drop(null, (err2) => {
 
-                    expect(err instanceof Error).to.equal(true);
+                    expect(err2 instanceof Error).to.equal(true);
                     done();
                 });
             });
