@@ -17,7 +17,7 @@ const expect   = Code.expect;
 
 // setup general options
 const tmpcachepath = Tmp.dirSync({ prefix: 'catbox_disk_tmp_', unsafeCleanup: true, mode: '0777' });
-const options = { cachePath: tmpcachepath.name };
+const options = { cachePath: tmpcachepath.name, cleanEvery:0 };
 
 
 describe('Disk', () => {
@@ -313,7 +313,7 @@ describe('Disk', () => {
             });
         });
 
-        it('throws error on unparseable JSON', (done) => {
+        it('returns not found on unparseable JSON and removes file', (done) => {
 
             const disk = new Disk(options);
             disk.start(() => {
@@ -326,9 +326,9 @@ describe('Disk', () => {
                     Fs.appendFileSync(fp, 'bad data that kills JSON');
                     disk.get(key, (err, result) => {
 
-                        expect(err).to.exist();
-                        expect(err.code).to.not.equal('ENOENT');
+                        expect(err).to.not.exist();
                         expect(result).to.not.exist();
+                        expect(Fs.existsSync(fp)).to.equal(false);
                         done();
                     });
                 });
@@ -691,4 +691,30 @@ describe('Disk', () => {
             done();
         });
     });
+
+    describe('#cacheCleanerInit', () => {
+
+        it('ignores file patterns in ignorePatterns', {timeout:8000}, (done) => {
+
+            const keepfp = Path.join(tmpcachepath.name,'test.keep');
+            Fs.writeFileSync(keepfp,'ok','utf8');
+            const keep2fp = Path.join(tmpcachepath.name,'ignoreme.txt');
+            Fs.writeFileSync(keep2fp,'ok','utf8');
+            const delfp = Path.join(tmpcachepath.name,'test.delete');
+            Fs.writeFileSync(delfp,'ok','utf8');
+
+            const disk = new Disk({ cachePath: tmpcachepath.name,  ignorePatterns:[/^ignoreme/,/\.keep$/]});
+            disk.cacheCleanerInit();
+            setTimeout(()=>{
+                expect(Fs.existsSync(keepfp)).to.be.equal(true);
+                expect(Fs.existsSync(keep2fp)).to.be.equal(true);
+                expect(Fs.existsSync(delfp)).to.be.equal(false);
+                done();
+                // Fs.unlinkSync(keepfp);
+            },4000);
+        });
+
+    });
+
+
 });

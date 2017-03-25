@@ -5,7 +5,7 @@ Disk storage adapter for [catbox](https://github.com/hapijs/catbox).
 
 Lead Maintainer - [Andrew Hughes](https://github.com/EyePulp)
 
-Code liberally cribbed from various other adapter examples, primarily 
+Code liberally cribbed from various other adapter examples, primarily
   - [catbox-memory](https://github.com/hapijs/catbox-memory)
   - [catbox-s3](https://github.com/fhemberger/catbox-s3)
 
@@ -14,8 +14,10 @@ An example invocation:
 ```javascript
 const client = new Catbox.Client(Disk, { cachePath: '/some/existing/dir', cleanEvery: 100000 });
 ```
-  - `cachePath` : `string` **required** - a pre-existing path you want to store your cache files in
-  - `cleanEvery` : `integer` **optional** - number of milliseconds between each cache cleanup for disk space recovery. (Default 1 hour)
+  - `cachePath`      : `string` **required** - a pre-existing path you want to store your cache files in
+  - `cleanEvery`     : `integer <default 1 hour>` **optional** - number of milliseconds between each cache cleanup for disk space recovery. Set to 0 to deactivate entirely.
+  - `ignorePatterns` : `array <default empty []>` **optional** - an array of regex patterns to ignore when the cache cleaner runs e.g. `[/^ignoreme/,/\.keep$/]`
 
 ### Warning/TODO
-This cache doesn't currently set any sort of upper limit on its growth.  Plan accordingly, and monitor your free drive space if you're not certain about behavior.  
+This cache doesn't currently set any sort of upper limit on its growth.  Plan accordingly, and monitor your free drive space if you're not certain about behavior.
+
