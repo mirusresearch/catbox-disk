@@ -12,7 +12,20 @@ Code liberally cribbed from various other adapter examples, primarily
 ### Options
 An example invocation:
 ```javascript
-const client = new Catbox.Client(Disk, { cachePath: '/some/existing/dir', cleanEvery: 3600000, ignorePatterns:[/\.stfolder/] });
+const Hapi = require('hapi');
+const Disk = require('catbox-disk');
+
+const server = new Hapi.Server({
+    cache : [{
+            name      : 'diskCache',
+            engine    : Disk,
+            cachePath: '/some/existing/dir', 
+            cleanEvery: 3600000, 
+            ignorePatterns:[/\.stfolder/],
+            partition : 'cache'
+    }]
+});
+
 ```
   - `cachePath`      : `string` **required** - a pre-existing path you want to store your cache files in
   - `cleanEvery`     : `integer <default 1 hour>` **optional** - number of milliseconds between each cache cleanup for disk space recovery. Set to 0 to deactivate entirely.
