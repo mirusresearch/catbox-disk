@@ -1,8 +1,8 @@
 {
   "name": "catbox-disk",
   "description": "Disk storage adapter for catbox",
-  "version": "2.0.4",
-  "repository": "git://github.com/EyePulp/catbox-disk",
+  "version": "2.0.5",
+  "repository": "git://github.com/mirusresearch/catbox-disk",
   "main": "lib/index.js",
   "keywords": [
     "cache",
