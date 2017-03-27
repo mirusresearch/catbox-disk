@@ -1,4 +1,4 @@
-catbox-disk [![Build Status](https://travis-ci.org/EyePulp/catbox-disk.svg?branch=master)](https://travis-ci.org/EyePulp/catbox-disk)
+catbox-disk [![Build Status](https://travis-ci.org/mirusresearch/catbox-disk.svg?branch=master)](https://travis-ci.org/mirusresearch/catbox-disk)
 =============
 
 Disk storage adapter for [catbox](https://github.com/hapijs/catbox).
@@ -19,7 +19,7 @@ const server = new Hapi.Server({
     cache : [{
             name      : 'diskCache',
             engine    : Disk,
-            cachePath: '/some/existing/dir', 
+            cachePath: '/some/existing/dir',
             cleanEvery: 3600000,
             partition : 'cache'
     }]
