@@ -694,24 +694,25 @@ describe('Disk', () => {
 
     describe('#cacheCleanerInit', () => {
 
-        it('ignores file patterns in ignorePatterns', {timeout:8000}, (done) => {
+        it('ignores filenames not matching the cache naming scheme', {timeout:8000}, (done) => {
+
+            const disk = new Disk({ cachePath: tmpcachepath.name });
 
             const keepfp = Path.join(tmpcachepath.name,'test.keep');
             Fs.writeFileSync(keepfp,'ok','utf8');
-            const keep2fp = Path.join(tmpcachepath.name,'ignoreme.txt');
-            Fs.writeFileSync(keep2fp,'ok','utf8');
-            const delfp = Path.join(tmpcachepath.name,'test.delete');
-            Fs.writeFileSync(delfp,'ok','utf8');
 
-            const disk = new Disk({ cachePath: tmpcachepath.name,  ignorePatterns:[/^ignoreme/,/\.keep$/]});
+            const key = { segment:'segment', id:'removablekey' };
+            const removefp  = disk.getStoragePathForKey(key).split('/').slice(-1)[0];
+
+            Fs.writeFileSync(Path.join(tmpcachepath.name,removefp),'{}','utf8');
+
             disk.cacheCleanerInit();
             setTimeout(()=>{
                 expect(Fs.existsSync(keepfp)).to.be.equal(true);
-                expect(Fs.existsSync(keep2fp)).to.be.equal(true);
-                expect(Fs.existsSync(delfp)).to.be.equal(false);
+                expect(Fs.existsSync(removefp)).to.be.equal(false);
                 done();
-                // Fs.unlinkSync(keepfp);
             },4000);
+
         });
 
     });
