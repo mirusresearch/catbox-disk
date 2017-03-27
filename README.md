@@ -20,8 +20,7 @@ const server = new Hapi.Server({
             name      : 'diskCache',
             engine    : Disk,
             cachePath: '/some/existing/dir', 
-            cleanEvery: 3600000, 
-            ignorePatterns:[/\.stfolder/],
+            cleanEvery: 3600000,
             partition : 'cache'
     }]
 });
@@ -29,7 +28,6 @@ const server = new Hapi.Server({
 ```
   - `cachePath`      : `string` **required** - a pre-existing path you want to store your cache files in
   - `cleanEvery`     : `integer <default 1 hour>` **optional** - number of milliseconds between each cache cleanup for disk space recovery. Set to 0 to deactivate entirely.
-  - `ignorePatterns` : `array <default empty []>` **optional** - an array of regex patterns to ignore when the cache cleaner runs e.g. `[/^ignoreme/,/\.keep$/]`
 
 ### Notes
   - This cache doesn't currently set any sort of upper limit on its growth.  Plan accordingly, and monitor your free drive space if you're not certain about behavior.
