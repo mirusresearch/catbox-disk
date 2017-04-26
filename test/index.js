@@ -289,6 +289,31 @@ describe('Disk', () => {
             });
         });
 
+        it('gets a ttl back on a valid key', (done) => {
+
+            const client = new Catbox.Client(Disk, options);
+            client.start((err) => {
+
+                expect(err).to.not.exist();
+
+                const key = { id: 'test/id?with special%chars&', segment: 'test' };
+                client.set(key, {foo:'bar'}, 5000, (err2) => {
+
+                    expect(err2).to.not.exist();
+                    setTimeout(()=>{
+                        client.get(key, (err3, result) => {
+
+                            expect(err3).to.equal(null);
+                            console.log('result:',result);
+                            expect(result.item.foo).to.equal('bar');
+                            expect(result.ttl).to.be.a.number();
+                            done();
+                        });
+                    },1000);
+                });
+            });
+        });
+
         it('throws error on existing unreadable key ', (done) => {
 
             const disk = new Disk(options);
