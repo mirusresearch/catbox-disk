@@ -28,9 +28,11 @@ const server = new Hapi.Server({
 ```
   - `cachePath`      : `string` **required** - a pre-existing path you want to store your cache files in
   - `cleanEvery`     : `integer <default 1 hour>` **optional** - number of milliseconds between each cache cleanup for disk space recovery. Set to 0 to deactivate entirely.
-
+  
 ### Notes
-  - This cache doesn't currently set any sort of upper limit on its growth.  Plan accordingly, and monitor your free drive space if you're not certain about behavior.
-  - If you access an expired file (ttl exceeded) we unlink (delete) the file right then
-  - If you never access an old cached file, it will take up drivespace until deleted, which is why we have the `cleanEvery` option and default it to activated.  Be careful when deactivating it.
+  - This cache backend stores everything in flat `.json` files with MD5 hashed filenames based off the keys to avoid encoding issues & length limits at the filesystem level.
+  - Initial hash character prefixes are used to split file storage into multiple sub directories to avoid excessive file counts in any one directory, e.g. `ABCD1234DEADBEEF.json` is stored in `.../AB/CD/ABCD1234DEADBEEF.json`
+  - **This cache doesn't set an upper limit on disk usage.**  Plan accordingly, and monitor your free drive space if you're not certain about behavior.
+  - Old, un-accessed files are automatically purged via the `cleanEvery` interval option, which is active by default. If you never access an old cached file, it will take up drivespace until deleted, which is why this option is important.  **Be mindful if you deactivate it**.
+  
 
