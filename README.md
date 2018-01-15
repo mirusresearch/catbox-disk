@@ -10,7 +10,7 @@ Code liberally cribbed from various other adapter examples, primarily
   - [catbox-s3](https://github.com/fhemberger/catbox-s3)
 
 ### Version Note:
-** Users of Hapi less than v17 should use the 2.x.x version of this plugin.  For Hapi v17 and above use version 3.x.x or greater. **
+**Users of Hapi less than v17 should use the 2.x.x version of this plugin.  For Hapi v17 and above use version 3.x.x or greater.**
 
 ### Options
 An example invocation:
