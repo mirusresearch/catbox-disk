@@ -28,6 +28,7 @@ const fileExists = (filePath) => {
             if (err.code === 'ENOENT') {
                 return false;
             }
+
             return Promise.reject(err);
         });
 };
@@ -50,6 +51,7 @@ describe('Disk', () => {
                 if (err) {
                     return reject(err);
                 }
+
                 return resolve({ name, removeCallback: promisify(removeCallback) });
             });
         });
@@ -124,6 +126,7 @@ describe('Disk', () => {
                     cleanEvery: 'notbloodylikely'
                 });
             };
+
             expect(fn).to.throw(Error);
         });
 
@@ -138,6 +141,7 @@ describe('Disk', () => {
                 const client = new Catbox.Client(Disk, options);
                 new Catbox.Policy(config, client, '');
             };
+
             expect(fn).to.throw(Error);
         });
 
@@ -152,6 +156,7 @@ describe('Disk', () => {
                 const client = new Catbox.Client(Disk, options);
                 new Catbox.Policy(config, client, 'a\0b');
             };
+
             expect(fn).to.throw(Error);
         });
     });
