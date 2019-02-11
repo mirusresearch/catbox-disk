@@ -12,8 +12,24 @@ Code liberally cribbed from various other adapter examples, primarily
 ### Version Note:
 **Users of Hapi less than v17 should use the 2.x.x version of this plugin.  For Hapi v17 and above use version 3.x.x or greater.**
 
-### Options
-An example invocation:
+### Example invocations:
+#### >= Hapi v17.0.0:
+```javascript
+const Hapi = require('hapi');
+const Disk = require('catbox-disk');
+
+const server = new Hapi.Server({
+    cache : [{
+            name      : 'diskCache',
+            engine    : new Disk({
+              cachePath: '/some/existing/dir',
+              cleanEvery: 3600000,
+              partition : 'cache'
+            }),
+    }]
+});
+```
+#### < Hapi v17.0.0:
 ```javascript
 const Hapi = require('hapi');
 const Disk = require('catbox-disk');
@@ -27,12 +43,14 @@ const server = new Hapi.Server({
             partition : 'cache'
     }]
 });
-
 ```
+
+### Opttions:
+
   - `cachePath`      : `string` **required** - a pre-existing path you want to store your cache files in
   - `cleanEvery`     : `integer <default 1 hour>` **optional** - number of milliseconds between each cache cleanup for disk space recovery. Set to 0 to deactivate entirely.
 
-### Notes
+### Notes:
   - This cache backend stores everything in flat `.json` files with MD5 hashed filenames based off the keys to avoid encoding issues & length limits at the filesystem level.
   - Initial hash character prefixes are used to split file storage into multiple sub directories to avoid excessive file counts in any one directory, e.g. `ABCD1234DEADBEEF.json` is stored in `.../AB/CD/ABCD1234DEADBEEF.json`
   - **This cache doesn't set an upper limit on disk usage.**  Plan accordingly, and monitor your free drive space if you're not certain about behavior.
