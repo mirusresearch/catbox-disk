@@ -16,3 +16,4 @@ coverage.*
 lib-cov
 package-lock.json
 serverTest.js
+settings.json
